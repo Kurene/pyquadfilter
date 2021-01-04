@@ -38,13 +38,8 @@ def plot_frequency_response(
     
         with np.errstate(divide='ignore'):
             amp_dB = 20 * np.log10(np.abs(h))
-        angles = np.unwrap(np.angle(h))
-        if np.max(np.abs(angles)) > np.pi:
-            #print(angles)
-            angles += np.pi
-            angles = angles % (2.0*np.pi)
-            angles -= np.pi
-            
+        angles = np.angle(h)
+
         plt.subplot(2,1,1)
         plt.plot(w, amp_dB, color=cmap[k], alpha=0.5, label=labels[k])
         plt.grid(True, which="both", ls="dotted")
