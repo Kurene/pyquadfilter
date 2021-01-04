@@ -5,8 +5,22 @@ reference: https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html
 """
 import numpy as np
 from scipy import signal
-#from numba import jit
+from numba import jit
+from .plot import plot_frequency_response
 
+@jit
+def biquad_filter(length, input, output, b, a):
+    """
+    a[0] == 1.0
+    length == len(input) - 4
+    """
+    for k in range(length):
+        output[k] = b[0] * input[k]\
+                  + b[1] * input[k-1]\
+                  + b[2] * input[k-2]\
+                  - a[1] * output[k-1]\
+                  - a[2] * output[k-2]          
+        
 
 class PyQuadFilter():
     """ Bi-quad filter on python
@@ -151,6 +165,30 @@ class PyQuadFilter():
         a /= a[0]
         
         return b, a
+
+    def filter(self, x):
+        y = np.zeros(x.shape)
+        if x.ndim == 1:
+            length = x.shape[0] + 4
+            x_tmp = np.zeros(length)
+            y_tmp = np.zeros(length)
+            x_tmp[2:length-2] = x
+            biquad_filter(length, x_tmp, y_tmp, self._b, self._a)
+            y[:] = y_tmp[2:length-2]
+        elif x.ndim == 2:
+            length = x.shape[1] + 4
+            n_ch = x.shape[0]
+            x_tmp = np.zeros(length)
+            y_tmp = np.zeros(length)
+            for k in range(n_ch):
+                x_tmp[2:length-2] = x[k,:]
+                biquad_filter(length, x_tmp, y_tmp, self._b, self._a)
+                y[k,:] = y_tmp[2:length-2]
+                
+        return y
+    
+    def plot_frequency_response(self, **kwargs):
+        plot_frequency_response(self._sr, self._b, self._a, **kwargs)
     
     def __str__(self):
         ret = f"""
