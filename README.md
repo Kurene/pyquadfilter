@@ -8,7 +8,7 @@ https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html
 
 # Quick Start
 
-## install
+## Installation
 ```
 pip install git+https://github.com/kurene/pyquadfilter
 ```
@@ -32,7 +32,7 @@ pyquad = PyQuadFilter(sr, filter_type=filter_type, fc=fc, q=q, gain_db=gain_db)
 ```
 
 ## Filter the signal
-
+### Offline
 ```python
 pyquad = PyQuadFilter(sr)
 pyquad.set_params(filter_type, fc, q, gain_db)
