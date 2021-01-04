@@ -40,6 +40,9 @@ pyquad.set_params(filter_type, fc, q, gain_db)
 y = pyquad.filter(x)
 ```
 
+### Online
+under construction
+
 ## Filter types
 - "lowpass"
 - "highpass"
@@ -49,6 +52,14 @@ y = pyquad.filter(x)
 - "peaking"
 - "lowshelf"
 - "highshelf"
+
+# Frequency response
+Change cut-off freq.
+https://github.com/Kurene/pyquadfilter/blob/main/plot_responses_fc/README.md
+
+Change q-value:
+https://github.com/Kurene/pyquadfilter/blob/main/plot_responses_q/README.md
+
 
 # License
 pyquadfilter is copyright [Kurene](https://twitter.com/_kurene), and licensed under
