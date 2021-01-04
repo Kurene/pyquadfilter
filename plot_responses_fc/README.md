@@ -1,2 +1,2 @@
 # Frequency responses
-![Lowpass](./0_owpass.png?raw=true)
+![Lowpass](./0_lowpass.png?raw=true)
