@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="pyquadfilter",
-    version="0.0.1",
+    version="0.2.0",
     description="Implementation of digital bi-quad filter in Python",
     long_description=long_description,
     long_description_content_type="text/markdown",

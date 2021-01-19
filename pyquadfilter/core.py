@@ -8,19 +8,21 @@ from scipy import signal
 from numba import jit
 from .plot import plot_frequency_response
 
-@jit
-def biquad_filter(length, input, output, b, a):
+@jit(nopython=True, nogil=True)
+def compute_biquad_filter(length, x, y, x_buf, y_buf, b, a):
     """
     a[0] == 1.0
-    length == len(input) - 4
     """
     for k in range(length):
-        output[k] = b[0] * input[k]\
-                  + b[1] * input[k-1]\
-                  + b[2] * input[k-2]\
-                  - a[1] * output[k-1]\
-                  - a[2] * output[k-2]          
-        
+        y[k] = b[0] * x[k]\
+             + b[1] * x_buf[1]\
+             + b[2] * x_buf[0]\
+             - a[1] * y_buf[1]\
+             - a[2] * y_buf[0]
+        x_buf[0] = x_buf[1]
+        x_buf[1] = x[k]
+        y_buf[0] = y_buf[1]
+        y_buf[1] = y[k]
 
 class PyQuadFilter():
     """ Bi-quad filter on python
@@ -57,8 +59,10 @@ class PyQuadFilter():
             raise ValueError("sr cannot be given a negative value")
         self._sr = sr
     
-        self._b, self._a = np.zeros(3), np.zeros(3)
-        
+        self._b = np.zeros(3)
+        self._a = np.zeros(3)
+        self._y = None
+ 
         if filter_type is not None:
             self.set_params(filter_type, fc, q, gain_db)
 
@@ -166,27 +170,48 @@ class PyQuadFilter():
         
         return b, a
 
-    def filter(self, x):
-        y = np.zeros(x.shape)
+    def filter(self, x, online=False):
         if x.ndim == 1:
-            length = x.shape[0] + 4
-            x_tmp = np.zeros(length)
-            y_tmp = np.zeros(length)
-            x_tmp[2:length-2] = x
-            biquad_filter(length, x_tmp, y_tmp, self._b, self._a)
-            y[:] = y_tmp[2:length-2]
-        elif x.ndim == 2:
-            length = x.shape[1] + 4
-            n_ch = x.shape[0]
-            x_tmp = np.zeros(length)
-            y_tmp = np.zeros(length)
-            for k in range(n_ch):
-                x_tmp[2:length-2] = x[k,:]
-                biquad_filter(length, x_tmp, y_tmp, self._b, self._a)
-                y[k,:] = y_tmp[2:length-2]
-                
-        return y
+            x_tmp = x[np.newaxis, :]
+        elif x.ndim > 2:
+            raise ValueError(f"x.ndim is not 2:  x.ndim=={x.ndim}")
+        else: # x.ndim == 2
+            x_tmp = x.view()
+            
+        if online:
+            return self._filter_online(x_tmp)
+        else:
+            return self._filter_offline(x_tmp)
     
+    def prepare_filter_online(self, n_ch=None, length=None):
+        self._y = np.zeros((n_ch, length))
+        self.x_buf   = np.zeros((n_ch, 2))
+        self.y_buf   = np.zeros((n_ch, 2))
+        
+    def _filter_online(self, x):
+        if x.shape != self._y.shape:
+            raise ValueError(f"x.shape and self._y.shape are not equal: {x.shape}, {self._y.shape}")
+
+        n_ch, n_samples = x.shape
+        for k in range(n_ch):
+            compute_biquad_filter(n_samples, x[k], self._y[k], 
+                                  self.x_buf[k], self.y_buf[k], 
+                                  self._b, self._a)
+                                  
+        return self._y
+        
+    def _filter_offline(self, x):
+        n_ch, n_samples = x.shape
+        y = np.zeros(x.shape)
+        x_buf   = np.zeros((n_ch, 2))
+        y_buf   = np.zeros((n_ch, 2))
+
+        for k in range(n_ch):
+            compute_biquad_filter(n_samples, x[k], y[k], 
+                                  x_buf[k], y_buf[k],
+                                  self._b, self._a)
+        return y
+
     def plot_frequency_response(self, **kwargs):
         plot_frequency_response(self._sr, self._b, self._a, **kwargs)
     
@@ -229,3 +254,7 @@ class PyQuadFilter():
     @property
     def gain_db(self):
         return self._gain_db
+
+    @property
+    def y(self):
+        return self._y
