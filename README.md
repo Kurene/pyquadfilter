@@ -40,8 +40,16 @@ pyquad.set_params(filter_type, fc, q, gain_db)
 y = pyquad.filter(x)
 ```
 
-### Online
-under construction
+### Online (frame by frame proc.)
+```python
+pyquad = PyQuadFilter(sr)
+pyquad.prepare_filter_online(n_ch=n_ch, length=length)
+
+# in callback func.
+# x_frame.shape and y_frame.shape are (n_channels, length) or (length, )
+pyquad.set_params(filter_type, fc, q, gain_db)
+y_frame[:] = pyquad.filter(x_frame, online=True)
+```
 
 ## Filter types
 - "lowpass"
