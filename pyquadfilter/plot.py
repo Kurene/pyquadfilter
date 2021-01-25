@@ -13,6 +13,7 @@ def plot_frequency_response(
         max_dB=10,
         labels=None,
     ):
+    
     if b.ndim == 1 and a.ndim == 1:
         _b, _a = np.zeros((1, b.shape[0])), np.zeros((1, a.shape[0]))
         _b[0], _a[0] = b, a
@@ -61,3 +62,44 @@ def plot_frequency_response(
         plt.xscale('log')
         if labels[k] != "":
             plt.legend(loc="upper right")
+          
+
+
+def plot_pole_zero(b, a):
+    max_v = 1.0
+    def plot_comp(c, label, color, marker, _max_v):
+        x, y = np.real(c), np.imag(c)
+        plt.plot(x, y, marker=marker, color=color, label=label)
+        _max_v = np.abs(x) if np.abs(x) > _max_v else _max_v
+        _max_v = np.abs(y) if np.abs(y) > _max_v else _max_v
+        return _max_v
+        
+    plt.figure(figsize=(6, 6))
+    theta = np.linspace(0, 2*np.pi, 360)
+    plt.plot(np.cos(theta), np.sin(theta), c="black", linestyle="dotted")
+    plt.grid()
+    
+    zeros, poles = np.roots(b), np.roots(a)
+    max_v = plot_comp(zeros[0], "zero 0", "b", "x", max_v)
+    max_v = plot_comp(zeros[1], "zero 1", "b", "x", max_v)
+    max_v = plot_comp(poles[0], "pole 0", "r", "o", max_v)
+    max_v = plot_comp(poles[1], "pole 1", "r", "o", max_v)
+    max_v *= 1.1
+    plt.xlim(-max_v, max_v)
+    plt.ylim(-max_v, max_v)
+    plt.xlabel("Real")
+    plt.ylabel("Imag")
+    plt.legend(bbox_to_anchor=(1, 0), loc='lower right')
+    
+if __name__ == "__main__":
+    
+    
+    b = np.array([1.0, 2.0, 1.0])
+    a = np.array([5.0, -1.0, 1.0])
+    
+    plot_pole_zero(b, a)
+    plt.show()
+    
+    
+    
+    

@@ -6,7 +6,7 @@ reference: https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html
 import numpy as np
 from scipy import signal
 from numba import jit
-from .plot import plot_frequency_response
+from .plot import plot_frequency_response, plot_pole_zero
 
 @jit(nopython=True, nogil=True)
 def compute_biquad_filter(length, x, y, x_buf, y_buf, b, a):
@@ -53,7 +53,7 @@ class PyQuadFilter():
         filter_type=None,
         fc=1000,
         q=1.0,
-        gain_db=1.0,
+        gain_db=1.0
     ):
         if sr < 0.0:
             raise ValueError("sr cannot be given a negative value")
@@ -89,6 +89,7 @@ class PyQuadFilter():
         
         filter_type = filter_type.lower()\
                         .replace("-","").replace("_","")
+
         if filter_type == "lowpass":
             b[0] = (1.0 - cos_w) * 0.5
             b[1] = (1.0 - cos_w)
@@ -96,6 +97,8 @@ class PyQuadFilter():
             a[0] = 1.0 + alpha
             a[1] = -2.0 * cos_w
             a[2] = 1.0 - alpha
+            b /= a[0]
+            a /= a[0]
         elif filter_type == "highpass":
             b[0] = (1.0 + cos_w) * 0.5
             b[1] = -(1.0 + cos_w)
@@ -103,6 +106,8 @@ class PyQuadFilter():
             a[0] = 1.0 + alpha
             a[1] = -2.0 * cos_w
             a[2] = 1.0 - alpha
+            b /= a[0]
+            a /= a[0]
         elif filter_type == "bandpass":
             b[0] =  sin_w * 0.5
             b[1] = 0.0
@@ -110,6 +115,8 @@ class PyQuadFilter():
             a[0] = 1.0 + alpha
             a[1] = -2.0 * cos_w
             a[2] = 1.0 - alpha
+            b /= a[0]
+            a /= a[0]
         elif filter_type == "allpass":
             b[0] = 1.0 - alpha
             b[1] = -2.0 * cos_w
@@ -117,6 +124,8 @@ class PyQuadFilter():
             a[0] = 1.0 + alpha
             a[1] = -2.0 * cos_w
             a[2] = 1.0 - alpha
+            b /= a[0]
+            a /= a[0]
         elif filter_type == "notch":
             b[0] = 1.0
             b[1] = -2.0 * cos_w
@@ -124,6 +133,8 @@ class PyQuadFilter():
             a[0] = 1.0 + alpha
             a[1] = -2.0 * cos_w
             a[2] = 1.0 - alpha
+            b /= a[0]
+            a /= a[0]
         elif filter_type == "peaking":
             b[0] = 1.0 + alpha * self.amp
             b[1] = -2.0 * cos_w
@@ -132,6 +143,8 @@ class PyQuadFilter():
                 a[0] = 1.0 + alpha / self.amp
                 a[1] = -2.0 * cos_w
                 a[2] = 1.0 - alpha / self.amp
+            b /= a[0]
+            a /= a[0]
         elif filter_type == "lowshelf":
             amp_add_1 = self.amp + 1.0
             amp_sub_1 = self.amp - 1.0
@@ -146,6 +159,8 @@ class PyQuadFilter():
             a[1] = -2.0 * (amp_sub_1 + amp_add_1 * cos_w)
             a[2] = amp_add_1 + amp_sub_1 * cos_w\
                  - 2.0 * sqrt_amp * alpha
+            b /= a[0]
+            a /= a[0]
         elif filter_type == "highshelf":
             amp_add_1 = self.amp + 1.0
             amp_sub_1 = self.amp - 1.0
@@ -161,13 +176,13 @@ class PyQuadFilter():
             a[1] = 2.0 * (amp_sub_1 - amp_add_1 * cos_w)
             a[2] = amp_add_1 - amp_sub_1 * cos_w\
                  - 2.0 * sqrt_amp * alpha
+            b /= a[0]
+            a /= a[0]
         else:
             raise ValueError(f"invalid filter_type: {filter_type}")
-            
-        self.filter_type = filter_type
-        b /= a[0]
-        a /= a[0]
         
+        
+        self.filter_type = filter_type
         return b, a
 
     def filter(self, x, online=False):
@@ -197,7 +212,7 @@ class PyQuadFilter():
             compute_biquad_filter(n_samples, x[k], self._y[k], 
                                   self.x_buf[k], self.y_buf[k], 
                                   self._b, self._a)
-                                  
+                
         return self._y
         
     def _filter_offline(self, x):
@@ -210,11 +225,18 @@ class PyQuadFilter():
             compute_biquad_filter(n_samples, x[k], y[k], 
                                   x_buf[k], y_buf[k],
                                   self._b, self._a)
+                                  
+            #if filter_type == "bellallpass":
+            #    y[k] = 0.5 * (x[k] * (1.0 + self.amp) + y[k] * (1.0 - self.amp))
+            
         return y
 
     def plot_frequency_response(self, **kwargs):
         plot_frequency_response(self._sr, self._b, self._a, **kwargs)
     
+    def plot_pole_zero(self):
+        plot_pole_zero(self._b, self._a)    
+   
     def __str__(self):
         ret = f"""
         type:    {self.filter_type}
