@@ -5,6 +5,8 @@ Implementation of digital bi-quad filter in Python
 reference:
 https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html
 
+使い方 (日本語)
+https://www.wizard-notes.com/entry/python/pyquadfilter-prototype
 
 # Quick Start
 
